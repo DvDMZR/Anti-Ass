@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Plus, Check, Clock, AlertTriangle, Calendar, Trash2, Zap, BarChart3, Archive, RefreshCcw, Layout, ArrowRight, X, Play, FileText, Award, Hash, List, Cloud, Wifi, WifiOff, AlertCircle, Save, Edit2, Info, HelpCircle } from 'lucide-react';
+import { Mic, Plus, Check, Clock, AlertTriangle, Calendar, Trash2, Zap, BarChart3, Archive, RefreshCcw, Layout, ArrowRight, X, Play, FileText, Award, Hash, List, Cloud, Wifi, WifiOff, AlertCircle, Save, Edit2, Info, HelpCircle, Bell, BellOff } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, query, orderBy, runTransaction } from 'firebase/firestore';
@@ -1108,6 +1108,22 @@ export default function App() {
   const [reward, setReward] = useState({ active: false, data: null, gainedXP: 0 });
   const [showDebugMenu, setShowDebugMenu] = useState(false);
   const [debugTab, setDebugTab] = useState('rewards');
+  const [notifPermission, setNotifPermission] = useState(Notification?.permission || 'default');
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      alert('Dein Browser unterstützt keine Benachrichtigungen.');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    setNotifPermission(permission);
+    if (permission === 'granted') {
+      new Notification('Anti-ASS', {
+        body: 'Benachrichtigungen aktiviert! 🎉',
+        icon: '/icon-192.png'
+      });
+    }
+  };
 
   useEffect(() => {
     const storedVersion = localStorage.getItem('antiass_version');
@@ -1624,6 +1640,14 @@ export default function App() {
                         {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
                         {isOnline ? 'CLOUD: v' + APP_VERSION : 'OFFLINE'}
                    </div>
+                   <div className="h-4 w-[1px] bg-zinc-700"></div>
+                   <button
+                        onClick={requestNotificationPermission}
+                        className={`flex items-center gap-2 transition-colors ${notifPermission === 'granted' ? 'text-green-500' : 'hover:text-yellow-500'}`}
+                        title={notifPermission === 'granted' ? 'Benachrichtigungen aktiv' : 'Benachrichtigungen aktivieren'}
+                   >
+                        {notifPermission === 'granted' ? <Bell size={12} /> : <BellOff size={12} />}
+                   </button>
                    <div className="h-4 w-[1px] bg-zinc-700"></div>
                    <button onClick={() => { setShowProfileModal(false); setShowDebugMenu(true); }} className="flex items-center gap-2 hover:text-green-500 transition-colors">
                         <Hash size={12} /> DEBUG
