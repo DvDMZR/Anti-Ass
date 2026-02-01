@@ -160,16 +160,22 @@ const getTaskProgress = (task) => {
     return Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100);
 };
 
-const getAgingStatus = (createdAt) => {
-    if (!createdAt) return { color: 'text-green-500', border: 'border-green-500', bg: 'bg-green-500/10', label: 'Frisch', glow: 'shadow-[0_0_10px_rgba(34,197,94,0.2)]' };
-    const now = Date.now();
-    const ageInHours = (now - createdAt) / (1000 * 60 * 60);
-    const ageInDays = ageInHours / 24;
+const getAgingStatus = (createdAt, deadline) => {
+    const fresh = { color: 'text-green-500', border: 'border-green-500', bg: 'bg-green-500/10', label: 'Frisch', glow: 'shadow-none' };
+    if (!createdAt) return fresh;
 
-    if (ageInDays > 3) return { color: 'text-purple-400', border: 'border-purple-500', bg: 'bg-purple-900/20', label: 'SINGULARITÄT', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.5)]' };
-    if (ageInDays > 2) return { color: 'text-red-500', border: 'border-red-500', bg: 'bg-red-900/20', label: 'Kritisch', glow: 'shadow-[0_0_10px_rgba(239,68,68,0.3)]' };
-    if (ageInDays > 1) return { color: 'text-yellow-500', border: 'border-yellow-500', bg: 'bg-yellow-900/20', label: 'Alt', glow: 'shadow-none' };
-    return { color: 'text-green-500', border: 'border-green-500', bg: 'bg-green-500/10', label: 'Frisch', glow: 'shadow-none' };
+    const target = getTargetDate(deadline);
+    if (!target || deadline === 'Langfristig') return fresh;
+
+    const now = Date.now();
+    const totalDuration = target.getTime() - createdAt;
+    const elapsed = now - createdAt;
+    const progressPercent = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
+
+    if (progressPercent >= 100) return { color: 'text-purple-400', border: 'border-purple-500', bg: 'bg-purple-900/20', label: 'ÜBERFÄLLIG', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.5)]' };
+    if (progressPercent >= 85) return { color: 'text-red-500', border: 'border-red-500', bg: 'bg-red-900/20', label: 'Kritisch', glow: 'shadow-[0_0_10px_rgba(239,68,68,0.3)]' };
+    if (progressPercent >= 60) return { color: 'text-yellow-500', border: 'border-yellow-500', bg: 'bg-yellow-900/20', label: 'Dringend', glow: 'shadow-none' };
+    return fresh;
 };
 
 const calculateTaskXP = (task) => {
@@ -1553,7 +1559,7 @@ export default function App() {
                 {(view === 'dashboard' ? dashboardTasks : futureTasks).map((task) => {
                     const escalation = getEscalationStatus(task.deadline);
                     const progress = getTaskProgress(task);
-                    const aging = getAgingStatus(task.createdAt);
+                    const aging = getAgingStatus(task.createdAt, task.deadline);
                     
                     let progressFillColor = 'bg-green-500/10';
                     if (progress > 70) progressFillColor = 'bg-yellow-500/10';
