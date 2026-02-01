@@ -1590,9 +1590,7 @@ export default function App() {
                         {isOnline ? 'CLOUD: v' + APP_VERSION : 'OFFLINE'}
                    </div>
                    <div className="h-4 w-[1px] bg-zinc-700"></div>
-                   <button onClick={() => { setShowProfileModal(false); setShowDebugMenu(true); }} className="flex items-center gap-2 hover:text-white transition-colors">
-                        <Hash size={12} /> DEBUG
-                   </button>
+                   {/* Debug Menu: 5x auf Version tippen zum Öffnen */}
                 </div>
                 <div className="flex-1 overflow-y-auto p-0">
                     <div className="sticky top-0 bg-zinc-900 border-b border-zinc-800 p-3 text-xs font-bold text-zinc-500 uppercase tracking-wider flex justify-between px-6"><span>Missionsprotokoll</span><span>Belohnung</span></div>
