@@ -126,6 +126,31 @@ const isToday = (dateStr) => {
     const today = new Date(); return target.toDateString() === today.toDateString();
 };
 
+const formatDeadlineDisplay = (deadlineStr) => {
+    if (!deadlineStr || deadlineStr === 'Langfristig') return deadlineStr;
+    const target = getTargetDate(deadlineStr);
+    if (!target) return deadlineStr;
+
+    const now = new Date();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const hours = String(target.getHours()).padStart(2, '0');
+    const minutes = String(target.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+
+    if (target.toDateString() === today.toDateString()) {
+        return target.getHours() === 23 && target.getMinutes() === 59 ? 'Heute' : timeStr;
+    }
+    if (target.toDateString() === tomorrow.toDateString()) {
+        return `Morgen ${timeStr}`.trim();
+    }
+
+    const dayName = target.toLocaleDateString('de-DE', { weekday: 'short' });
+    const dateStr = target.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    return `${dayName} ${dateStr} ${timeStr}`.trim();
+};
+
 const getTaskProgress = (task) => {
     if (!task.createdAt || task.deadline === 'Langfristig') return 0;
     const target = getTargetDate(task.deadline); if (!target) return 0;
@@ -1014,7 +1039,8 @@ export default function App() {
         return;
     }
     
-    let deadlineToStore = parsed.display;
+    const d = parsed.date;
+    const deadlineToStore = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 
     try {
         await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'tasks'), {
@@ -1554,10 +1580,10 @@ export default function App() {
                                 </div>
                                 <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold tracking-wide">
                                     {task.type === 'simple' ? (
-                                    <span className="flex items-center gap-1.5 text-zinc-400 bg-zinc-950/50 px-2 py-1"><Clock size={12} className={aging.color} /> {task.deadline}</span>
+                                    <span className="flex items-center gap-1.5 text-zinc-400 bg-zinc-950/50 px-2 py-1"><Clock size={12} className={aging.color} /> {formatDeadlineDisplay(task.deadline)}</span>
                                     ) : (
                                     <>
-                                        <span className="flex items-center gap-1.5 text-zinc-400 bg-zinc-950/50 px-2 py-1"><Calendar size={12} className="text-indigo-500" /> {task.deadline}</span>
+                                        <span className="flex items-center gap-1.5 text-zinc-400 bg-zinc-950/50 px-2 py-1"><Calendar size={12} className="text-indigo-500" /> {formatDeadlineDisplay(task.deadline)}</span>
                                         <span className={`flex items-center gap-1.5 px-2 py-1 bg-zinc-950/50 ${escalation.color}`}><AlertTriangle size={12} /> {escalation.text}</span>
                                     </>
                                     )}
