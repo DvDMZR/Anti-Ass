@@ -2,12 +2,22 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Mic, Plus, Check, Clock, AlertTriangle, Calendar, Trash2, Zap, BarChart3, Archive, RefreshCcw, Layout, ArrowRight, X, Play, FileText, Award, Hash, List, Cloud, Wifi, WifiOff, AlertCircle, Save, Edit2, Info, HelpCircle } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, query, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, query, orderBy, runTransaction } from 'firebase/firestore';
 
 // --- APP VERSION & CHANGELOG ---
-const APP_VERSION = "6.1";
+const APP_VERSION = "6.2";
 
 const VERSION_HISTORY = [
+    {
+        version: "6.2",
+        changes: [
+            "PIXEL ART: Neuer Lofi-Stil für Kafka & Avatar",
+            "Fix: Deadlines werden jetzt dynamisch aktualisiert",
+            "Fix: Aging-Status relativ zur Deadline",
+            "Fix: Race Condition bei Task-Updates behoben",
+            "Performance: Weniger Partikel-Animationen"
+        ]
+    },
     {
         version: "6.1",
         changes: [
@@ -32,7 +42,7 @@ try {
     if (typeof __firebase_config !== 'undefined') {
         firebaseConfig = JSON.parse(__firebase_config);
     }
-} catch (e) { console.log("Local mode"); }
+} catch (e) { /* Local mode */ }
 
 if (!firebaseConfig) {
     firebaseConfig = {
@@ -126,6 +136,31 @@ const isToday = (dateStr) => {
     const today = new Date(); return target.toDateString() === today.toDateString();
 };
 
+const formatDeadlineDisplay = (deadlineStr) => {
+    if (!deadlineStr || deadlineStr === 'Langfristig') return deadlineStr;
+    const target = getTargetDate(deadlineStr);
+    if (!target) return deadlineStr;
+
+    const now = new Date();
+    const today = new Date(); today.setHours(0,0,0,0);
+    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const hours = String(target.getHours()).padStart(2, '0');
+    const minutes = String(target.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes}`;
+
+    if (target.toDateString() === today.toDateString()) {
+        return target.getHours() === 23 && target.getMinutes() === 59 ? 'Heute' : timeStr;
+    }
+    if (target.toDateString() === tomorrow.toDateString()) {
+        return `Morgen ${timeStr}`.trim();
+    }
+
+    const dayName = target.toLocaleDateString('de-DE', { weekday: 'short' });
+    const dateStr = target.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+    return `${dayName} ${dateStr} ${timeStr}`.trim();
+};
+
 const getTaskProgress = (task) => {
     if (!task.createdAt || task.deadline === 'Langfristig') return 0;
     const target = getTargetDate(task.deadline); if (!target) return 0;
@@ -135,16 +170,22 @@ const getTaskProgress = (task) => {
     return Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100);
 };
 
-const getAgingStatus = (createdAt) => {
-    if (!createdAt) return { color: 'text-green-500', border: 'border-green-500', bg: 'bg-green-500/10', label: 'Frisch', glow: 'shadow-[0_0_10px_rgba(34,197,94,0.2)]' };
-    const now = Date.now();
-    const ageInHours = (now - createdAt) / (1000 * 60 * 60);
-    const ageInDays = ageInHours / 24;
+const getAgingStatus = (createdAt, deadline) => {
+    const fresh = { color: 'text-green-500', border: 'border-green-500', bg: 'bg-green-500/10', label: 'Frisch', glow: 'shadow-none' };
+    if (!createdAt) return fresh;
 
-    if (ageInDays > 3) return { color: 'text-purple-400', border: 'border-purple-500', bg: 'bg-purple-900/20', label: 'SINGULARITÄT', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.5)]' };
-    if (ageInDays > 2) return { color: 'text-red-500', border: 'border-red-500', bg: 'bg-red-900/20', label: 'Kritisch', glow: 'shadow-[0_0_10px_rgba(239,68,68,0.3)]' };
-    if (ageInDays > 1) return { color: 'text-yellow-500', border: 'border-yellow-500', bg: 'bg-yellow-900/20', label: 'Alt', glow: 'shadow-none' };
-    return { color: 'text-green-500', border: 'border-green-500', bg: 'bg-green-500/10', label: 'Frisch', glow: 'shadow-none' };
+    const target = getTargetDate(deadline);
+    if (!target || deadline === 'Langfristig') return fresh;
+
+    const now = Date.now();
+    const totalDuration = target.getTime() - createdAt;
+    const elapsed = now - createdAt;
+    const progressPercent = totalDuration > 0 ? (elapsed / totalDuration) * 100 : 0;
+
+    if (progressPercent >= 100) return { color: 'text-purple-400', border: 'border-purple-500', bg: 'bg-purple-900/20', label: 'ÜBERFÄLLIG', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.5)]' };
+    if (progressPercent >= 85) return { color: 'text-red-500', border: 'border-red-500', bg: 'bg-red-900/20', label: 'Kritisch', glow: 'shadow-[0_0_10px_rgba(239,68,68,0.3)]' };
+    if (progressPercent >= 60) return { color: 'text-yellow-500', border: 'border-yellow-500', bg: 'bg-yellow-900/20', label: 'Dringend', glow: 'shadow-none' };
+    return fresh;
 };
 
 const calculateTaskXP = (task) => {
@@ -166,7 +207,7 @@ const calculateTaskXP = (task) => {
 };
 
 const parseNaturalLanguage = (input) => {
-    let text = input; let targetDate = new Date(); let foundDate = false;
+    let text = input; let targetDate = new Date(Date.now()); let foundDate = false;
     let foundTime = false;
     let hours = 23, minutes = 59;
     
@@ -490,6 +531,75 @@ const AnimationBackground = ({ type }) => {
     );
 };
 
+// --- PIXEL KAFKA (Lofi GitHub-Mona Style) ---
+const PixelKafka = ({ mood = 'idle' }) => {
+    const styles = `
+        @keyframes kafka-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+        @keyframes kafka-tail { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(20deg); } }
+        @keyframes kafka-blink { 0%, 96%, 100% { transform: scaleY(1); } 98% { transform: scaleY(0.1); } }
+        @keyframes kafka-wag { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(35deg); } }
+        @keyframes kafka-jump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes kafka-zzz { 0%, 100% { opacity: 0; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-4px); } }
+    `;
+    return (
+        <div className="relative w-full h-full">
+            <style>{styles}</style>
+            <svg viewBox="0 0 32 32" className="w-full h-full" style={{imageRendering: 'pixelated'}}>
+                {/* Tail */}
+                <g style={{transformOrigin: '8px 20px', animation: mood === 'happy' ? 'kafka-wag 0.2s ease-in-out infinite' : 'kafka-tail 1s ease-in-out infinite'}}>
+                    <rect x="5" y="18" width="2" height="2" fill="#8B5A2B"/>
+                    <rect x="3" y="16" width="2" height="2" fill="#8B5A2B"/>
+                    <rect x="2" y="14" width="2" height="2" fill="#6B4423"/>
+                </g>
+                <g style={{animation: mood === 'happy' ? 'kafka-jump 0.4s ease-in-out infinite' : mood === 'sleep' ? 'none' : 'kafka-breathe 3s ease-in-out infinite'}}>
+                    {/* Hind legs */}
+                    <rect x="8" y="24" width="3" height="4" fill="#6B4423"/>
+                    <rect x="13" y="24" width="3" height="4" fill="#8B5A2B"/>
+                    {/* Body */}
+                    <rect x="8" y="16" width="14" height="9" fill="#8B5A2B"/>
+                    <rect x="9" y="17" width="4" height="3" fill="#6B4423"/>
+                    {/* White chest spot */}
+                    <rect x="17" y="17" width="4" height="6" fill="#F5F5DC"/>
+                    {/* Front legs */}
+                    <rect x="19" y="23" width="3" height="5" fill="#8B5A2B"/>
+                    <rect x="23" y="23" width="3" height="5" fill="#6B4423"/>
+                    {/* Neck */}
+                    <rect x="21" y="12" width="5" height="6" fill="#8B5A2B"/>
+                    {/* Head */}
+                    <rect x="22" y="5" width="8" height="8" fill="#8B5A2B"/>
+                    <rect x="23" y="6" width="2" height="2" fill="#6B4423"/>
+                    {/* Snout */}
+                    <rect x="28" y="9" width="3" height="3" fill="#D2B48C"/>
+                    <rect x="29" y="9" width="2" height="2" fill="#1a1a1a"/>
+                    {/* Ears */}
+                    <rect x="22" y="3" width="3" height="3" fill="#6B4423"/>
+                    <rect x="27" y="3" width="3" height="3" fill="#6B4423"/>
+                    {/* Eyes */}
+                    {mood === 'sleep' ? (
+                        <><rect x="24" y="8" width="2" height="1" fill="#1a1a1a"/><rect x="27" y="8" width="2" height="1" fill="#1a1a1a"/></>
+                    ) : (
+                        <g style={{transformOrigin: 'center', animation: 'kafka-blink 4s infinite'}}>
+                            <rect x="24" y="7" width="2" height="2" fill="#1a1a1a"/><rect x="24" y="7" width="1" height="1" fill="#fff"/>
+                            <rect x="27" y="7" width="2" height="2" fill="#1a1a1a"/><rect x="27" y="7" width="1" height="1" fill="#fff"/>
+                        </g>
+                    )}
+                    {mood === 'happy' && <rect x="29" y="11" width="2" height="1" fill="#FF6B6B"/>}
+                    {/* Collar */}
+                    <rect x="21" y="13" width="5" height="2" fill="#EF4444"/>
+                    <rect x="23" y="14" width="2" height="2" fill="#FCD34D"/>
+                </g>
+                {/* Sleep ZZZ */}
+                {mood === 'sleep' && (
+                    <g fill="#fff" style={{animation: 'kafka-zzz 2s ease-in-out infinite'}}>
+                        <text x="26" y="4" fontSize="4" fontFamily="monospace">z</text>
+                        <text x="28" y="2" fontSize="3" fontFamily="monospace">z</text>
+                    </g>
+                )}
+            </svg>
+        </div>
+    );
+};
+
 // --- VECTOR ASSETS & COMPONENTS ---
 // VectorBone Component
 const VectorBone = () => (
@@ -704,58 +814,44 @@ const VectorKafka = ({ pose = 'sit' }) => {
 
 // --- REWARDS CONFIGURATION (Defined after VectorKafka) ---
 const REWARDS = [
-    { id: 1, title: "Super gemacht!", type: 'super-confetti', Component: () => <VectorKafka pose="happy" /> },
-    { id: 2, title: "Zoomies!", type: 'super-confetti', Component: () => <VectorKafka pose="run" /> },
-    { id: 3, title: "Verdiente Pause!", type: 'zzz', Component: () => <VectorKafka pose="sleep" /> },
-    { id: 4, title: "Cooler Typ!", type: 'warp', Component: () => <VectorKafka pose="cool" /> },
-    { id: 5, title: "Held des Tages!", type: 'supernova', Component: () => <VectorKafka pose="hero" /> },
-    { id: 6, title: "Ich liebe es!", type: 'heart', Component: () => <VectorKafka pose="love" /> },
-    { id: 7, title: "Leckerli Zeit!", type: 'gold-storm', Component: VectorBone },
-    { id: 8, title: "Spielzeit!", type: 'bubble', Component: VectorBall },
-    { id: 9, title: "Party Hard!", type: 'supernova', Component: () => <VectorKafka pose="happy" /> },
-    { id: 10, title: "High Five!", type: 'super-confetti', Component: () => <VectorKafka pose="happy" /> }, 
-    { id: 11, title: "Meisterleistung!", type: 'glitch', Component: () => <VectorKafka pose="cool" /> },
-    { id: 12, title: "Schnell wie der Wind!", type: 'warp', Component: () => <VectorKafka pose="run" /> },
-    { id: 13, title: "Goldener Knochen!", type: 'gold-storm', Component: VectorBone },
-    { id: 14, title: "Wow!", type: 'star', Component: () => <VectorKafka pose="love" /> },
-    { id: 15, title: "Läuft bei dir!", type: 'bubble', Component: () => <VectorKafka pose="happy" /> },
-    { id: 16, title: "Nicht aufzuhalten!", type: 'supernova', Component: () => <VectorKafka pose="hero" /> },
-    { id: 17, title: "Ein echter Profi!", type: 'glitch', Component: () => <VectorKafka pose="cool" /> },
-    { id: 18, title: "Träum was schönes!", type: 'zzz', Component: () => <VectorKafka pose="sleep" /> },
-    { id: 19, title: "Ball gefangen!", type: 'bubble', Component: VectorBall },
-    { id: 20, title: "Genial!", type: 'warp', Component: () => <VectorKafka pose="love" /> },
-    { id: 21, title: "Task vernichtet!", type: 'supernova', Component: () => <VectorKafka pose="hero" /> },
-    { id: 22, title: "Guter Hund!", type: 'heart', Component: () => <VectorKafka pose="happy" /> },
-    { id: 23, title: "Maximum Speed!", type: 'super-confetti', Component: () => <VectorKafka pose="run" /> },
-    { id: 24, title: "Chill Modus", type: 'zzz', Component: () => <VectorKafka pose="sleep" /> },
-    { id: 25, title: "Jackpot!", type: 'gold-storm', Component: VectorBone },
+    { id: 1, title: "Super gemacht!", type: 'confetti', Component: () => <PixelKafka mood="happy" /> },
+    { id: 2, title: "Guter Junge!", type: 'confetti', Component: () => <PixelKafka mood="happy" /> },
+    { id: 3, title: "Verdiente Pause!", type: 'zzz', Component: () => <PixelKafka mood="sleep" /> },
+    { id: 4, title: "Träum was Schönes!", type: 'zzz', Component: () => <PixelKafka mood="sleep" /> },
+    { id: 5, title: "Leckerli Zeit!", type: 'star', Component: VectorBone },
+    { id: 6, title: "Spielzeit!", type: 'star', Component: VectorBall },
+    { id: 7, title: "Wuff Wuff!", type: 'heart', Component: () => <PixelKafka mood="happy" /> },
+    { id: 8, title: "Task erledigt!", type: 'confetti', Component: () => <PixelKafka mood="idle" /> },
 ];
 
-const VectorAvatarUI = ({ level }) => {
-    const shirtColor = level > 10 ? '#9333ea' : level > 5 ? '#3b82f6' : '#16a34a'; 
+const PixelAvatarUI = ({ level }) => {
+    const shirtColor = level > 10 ? '#9333ea' : level > 5 ? '#3b82f6' : '#16a34a';
     return (
-        <div className="w-16 h-16 border-2 border-zinc-600 bg-zinc-800 relative shadow-lg group-hover:border-zinc-400 transition-colors overflow-hidden">
-            <svg viewBox="0 0 100 100" className="w-full h-full">
-                <defs>
-                    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#27272a" />
-                        <stop offset="100%" stopColor="#18181b" />
-                    </linearGradient>
-                </defs>
-                <rect width="100" height="100" fill="url(#bgGrad)" />
-                <path d="M20,60 Q15,90 30,95 L70,95 Q85,90 80,60 Q85,40 75,30 Q50,10 25,30 Q15,40 20,60" fill="#78350f" />
-                <path d="M25,100 Q50,85 75,100 L75,85 Q50,75 25,85 Z" fill={shirtColor} />
-                <rect x="42" y="65" width="16" height="10" fill="#fde68a" />
-                <ellipse cx="50" cy="55" rx="20" ry="22" fill="#fde68a" />
-                <path d="M30,35 Q50,25 70,35 Q75,45 70,55 L70,40 Q50,30 30,40 L30,55 Q25,45 30,35" fill="#78350f" />
-                <path d="M50,25 L35,15 Q30,12 35,25 Q40,30 50,25 Z" fill="#ef4444" />
-                <path d="M50,25 L65,15 Q70,12 65,25 Q60,30 50,25 Z" fill="#ef4444" />
-                <circle cx="50" cy="25" r="4" fill="#b91c1c" />
-                <circle cx="43" cy="55" r="2.5" fill="#18181b" /> 
-                <circle cx="57" cy="55" r="2.5" fill="#18181b" /> 
-                <ellipse cx="40" cy="62" rx="3" ry="1.5" fill="#fda4af" opacity="0.6" /> 
-                <ellipse cx="60" cy="62" rx="3" ry="1.5" fill="#fda4af" opacity="0.6" /> 
-                <path d="M46,67 Q50,69 54,67" fill="none" stroke="#18181b" strokeWidth="1.5" strokeLinecap="round" />
+        <div className="w-16 h-16 border-2 border-zinc-600 bg-zinc-900 relative shadow-lg group-hover:border-zinc-400 transition-colors overflow-hidden">
+            <svg viewBox="0 0 16 16" className="w-full h-full" style={{imageRendering: 'pixelated'}}>
+                <rect width="16" height="16" fill="#18181b"/>
+                {/* Hair back */}
+                <rect x="4" y="2" width="8" height="4" fill="#78350f"/>
+                <rect x="3" y="4" width="2" height="5" fill="#78350f"/>
+                <rect x="11" y="4" width="2" height="5" fill="#78350f"/>
+                {/* Face */}
+                <rect x="5" y="4" width="6" height="6" fill="#fde68a"/>
+                {/* Hair front */}
+                <rect x="5" y="3" width="6" height="2" fill="#78350f"/>
+                {/* Hair bow */}
+                <rect x="3" y="2" width="2" height="2" fill="#ef4444"/>
+                {/* Eyes */}
+                <rect x="6" y="6" width="1" height="1" fill="#18181b"/>
+                <rect x="9" y="6" width="1" height="1" fill="#18181b"/>
+                {/* Blush */}
+                <rect x="5" y="7" width="1" height="1" fill="#fda4af" opacity="0.7"/>
+                <rect x="10" y="7" width="1" height="1" fill="#fda4af" opacity="0.7"/>
+                {/* Mouth */}
+                <rect x="7" y="8" width="2" height="1" fill="#d97706"/>
+                {/* Neck */}
+                <rect x="7" y="10" width="2" height="1" fill="#fde68a"/>
+                {/* Shirt */}
+                <rect x="4" y="11" width="8" height="5" fill={shirtColor}/>
             </svg>
         </div>
     );
@@ -953,7 +1049,7 @@ export default function App() {
       const timer = setTimeout(checkPenalties, 2000);
       return () => clearTimeout(timer);
 
-  }, [user, tasks.length, userStats.lastPenaltyCheck]);
+  }, [user, tasks, userStats.lastPenaltyCheck]);
 
   useEffect(() => {
       const interval = setInterval(() => setNow(Date.now()), 60000);
@@ -1014,7 +1110,8 @@ export default function App() {
         return;
     }
     
-    let deadlineToStore = parsed.display;
+    const d = parsed.date;
+    const deadlineToStore = `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 
     try {
         await addDoc(collection(db, 'artifacts', appId, 'users', user.uid, 'tasks'), {
@@ -1085,22 +1182,24 @@ export default function App() {
     const statsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'data', 'stats');
 
     try {
-        await updateDoc(taskRef, {
-            completed: isCompleting,
-            completedAt: isCompleting ? Date.now() : null,
-            earnedXP: isCompleting ? xpValue : 0
+        await runTransaction(db, async (transaction) => {
+            const statsDoc = await transaction.get(statsRef);
+            const currentXP = statsDoc.exists() ? statsDoc.data().xp || 0 : 0;
+
+            transaction.update(taskRef, {
+                completed: isCompleting,
+                completedAt: isCompleting ? Date.now() : null,
+                earnedXP: isCompleting ? xpValue : 0
+            });
+
+            const newXP = isCompleting ? currentXP + xpValue : Math.max(0, currentXP - xpValue);
+            transaction.update(statsRef, { xp: newXP });
         });
 
-        if (isCompleting) {
-            await updateDoc(statsRef, { xp: userStats.xp + xpValue });
-            // FIX: Ensure REWARDS is valid before accessing
-            if (REWARDS && REWARDS.length > 0) {
-                const randomReward = REWARDS[Math.floor(Math.random() * REWARDS.length)];
-                setReward({ active: true, data: randomReward, gainedXP: xpValue });
-                setTimeout(() => setReward(prev => ({ ...prev, active: false })), 3000);
-            }
-        } else {
-            await updateDoc(statsRef, { xp: Math.max(0, userStats.xp - xpValue) });
+        if (isCompleting && REWARDS && REWARDS.length > 0) {
+            const randomReward = REWARDS[Math.floor(Math.random() * REWARDS.length)];
+            setReward({ active: true, data: randomReward, gainedXP: xpValue });
+            setTimeout(() => setReward(prev => ({ ...prev, active: false })), 3000);
         }
     } catch (err) {
         console.error("Error updating task: ", err);
@@ -1334,7 +1433,7 @@ export default function App() {
             <div className="bg-zinc-900 border-2 border-zinc-700 w-full max-w-lg h-[80vh] flex flex-col relative shadow-2xl">
                 <button onClick={() => setShowProfileModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white p-2"><X size={24} /></button>
                 <div className="p-8 border-b border-zinc-800 flex flex-col items-center bg-zinc-950/50">
-                    <div className="mb-4 transform scale-150"><VectorAvatarUI level={level} /></div>
+                    <div className="mb-4 transform scale-150"><PixelAvatarUI level={level} /></div>
                     <div className="text-2xl font-black text-white tracking-tight text-center leading-none mb-1">{currentTitle}</div>
                     <div className="text-zinc-500 font-mono text-xs mt-1 uppercase tracking-widest">NEXT: {nextLevelTitle}</div>
                     {user && (
@@ -1452,7 +1551,7 @@ export default function App() {
           <div className="flex justify-between items-end mb-6">
             <div className="flex items-end gap-5">
                 <div className="relative group cursor-pointer" onClick={() => setShowProfileModal(true)}>
-                    <VectorAvatarUI level={level} />
+                    <PixelAvatarUI level={level} />
                 </div>
                 <div className="flex flex-col cursor-pointer" onClick={() => setShowProfileModal(true)}>
                     <h1 className="text-2xl font-black tracking-tight text-white leading-none">ANTI<span className="text-green-500">ASS</span></h1>
@@ -1525,7 +1624,7 @@ export default function App() {
                 {(view === 'dashboard' ? dashboardTasks : futureTasks).map((task) => {
                     const escalation = getEscalationStatus(task.deadline);
                     const progress = getTaskProgress(task);
-                    const aging = getAgingStatus(task.createdAt);
+                    const aging = getAgingStatus(task.createdAt, task.deadline);
                     
                     let progressFillColor = 'bg-green-500/10';
                     if (progress > 70) progressFillColor = 'bg-yellow-500/10';
@@ -1552,10 +1651,10 @@ export default function App() {
                                 </div>
                                 <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold tracking-wide">
                                     {task.type === 'simple' ? (
-                                    <span className="flex items-center gap-1.5 text-zinc-400 bg-zinc-950/50 px-2 py-1"><Clock size={12} className={aging.color} /> {task.deadline}</span>
+                                    <span className="flex items-center gap-1.5 text-zinc-400 bg-zinc-950/50 px-2 py-1"><Clock size={12} className={aging.color} /> {formatDeadlineDisplay(task.deadline)}</span>
                                     ) : (
                                     <>
-                                        <span className="flex items-center gap-1.5 text-zinc-400 bg-zinc-950/50 px-2 py-1"><Calendar size={12} className="text-indigo-500" /> {task.deadline}</span>
+                                        <span className="flex items-center gap-1.5 text-zinc-400 bg-zinc-950/50 px-2 py-1"><Calendar size={12} className="text-indigo-500" /> {formatDeadlineDisplay(task.deadline)}</span>
                                         <span className={`flex items-center gap-1.5 px-2 py-1 bg-zinc-950/50 ${escalation.color}`}><AlertTriangle size={12} /> {escalation.text}</span>
                                     </>
                                     )}
