@@ -5,9 +5,18 @@ import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken }
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, query, orderBy, runTransaction } from 'firebase/firestore';
 
 // --- APP VERSION & CHANGELOG ---
-const APP_VERSION = "6.3";
+const APP_VERSION = "6.4";
 
 const VERSION_HISTORY = [
+    {
+        version: "6.4",
+        changes: [
+            "RETRO CRT THEME: Scanlines & Screen-Glow",
+            "Neu: Pixel-Font für Header",
+            "Neu: Retro-Buttons mit 3D-Effekt",
+            "Performance: Partikel drastisch reduziert"
+        ]
+    },
     {
         version: "6.3",
         changes: [
@@ -1679,8 +1688,8 @@ export default function App() {
                     <PixelAvatarUI level={level} />
                 </div>
                 <div className="flex flex-col cursor-pointer" onClick={() => setShowProfileModal(true)}>
-                    <h1 className="text-2xl font-black tracking-tight text-white leading-none">ANTI<span className="text-green-500">ASS</span></h1>
-                    <div className="text-[9px] text-zinc-500 font-bold tracking-widest uppercase mt-0.5 group-hover:text-zinc-300 transition-colors">Anti-Aufschiebe-System</div>
+                    <h1 className="text-xl font-pixel tracking-tight text-white leading-none crt-flicker">ANTI<span className="text-green-500 glow-green">ASS</span></h1>
+                    <div className="text-[8px] text-zinc-500 font-bold tracking-widest uppercase mt-1 group-hover:text-zinc-300 transition-colors font-mono">Anti-Aufschiebe-System</div>
                     <div className="w-40 mt-2">
                          <div className="flex justify-between text-[10px] text-zinc-400 mb-1 font-medium"><span>{Math.floor(currentXP)} XP</span><span>{xpNeeded} XP</span></div>
                         <div className="h-2 bg-zinc-800 overflow-hidden"><div className="h-full bg-gradient-to-r from-yellow-600 to-yellow-400 transition-all duration-500" style={{ width: `${levelProgress}%` }}></div></div>
@@ -1690,8 +1699,8 @@ export default function App() {
             </div>
             
             <div className="flex gap-2">
-                <button onClick={() => setShowLegendModal(true)} className="p-3 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-all bg-zinc-900 border border-zinc-800 shadow-sm" title="Legende anzeigen"><Info size={20} /></button>
-                <button onClick={() => setShowStatsModal(true)} className="p-3 hover:bg-zinc-800 text-zinc-400 hover:text-white transition-all bg-zinc-900 border border-zinc-800 shadow-sm"><BarChart3 size={20} /></button>
+                <button onClick={() => setShowLegendModal(true)} className="p-3 hover:bg-zinc-800 text-zinc-400 hover:text-green-500 transition-all bg-zinc-900 border-2 border-zinc-700 btn-retro" title="Legende anzeigen"><Info size={20} /></button>
+                <button onClick={() => setShowStatsModal(true)} className="p-3 hover:bg-zinc-800 text-zinc-400 hover:text-green-500 transition-all bg-zinc-900 border-2 border-zinc-700 btn-retro"><BarChart3 size={20} /></button>
             </div>
           </div>
 
@@ -1720,7 +1729,7 @@ export default function App() {
         </div>
 
         {view !== 'archive' && (
-        <section className="bg-zinc-900 border border-zinc-800 p-4 mb-8 shadow-xl">
+        <section className="bg-zinc-900 border-2 border-zinc-700 p-4 mb-8 glow-box">
           <div className="flex text-xs font-bold mb-4 bg-zinc-950 p-1">
             <button onClick={() => setMode('simple')} className={`flex-1 py-2 flex items-center justify-center gap-2 transition-all ${mode === 'simple' ? 'bg-green-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}><Zap size={14} /> SCHNELL</button>
             <button onClick={() => setMode('project')} className={`flex-1 py-2 flex items-center justify-center gap-2 transition-all ${mode === 'project' ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}><Layout size={14} /> PROJEKT</button>
@@ -1734,7 +1743,7 @@ export default function App() {
               <input type="date" value={projectDate} onChange={(e) => setProjectDate(e.target.value)} onClick={(e) => { try { e.target.showPicker?.(); } catch (err) {} }} style={{ colorScheme: 'dark' }} className="w-full bg-zinc-950 border border-zinc-800 px-4 py-2 text-sm text-white outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all cursor-pointer" />
             </div>
           )}
-          <button onClick={mode === 'simple' ? handleSimpleSubmit : handleProjectSubmit} disabled={isSubmitting} className={`w-full py-3 font-bold text-sm uppercase flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${mode === 'simple' ? 'bg-green-600 hover:bg-green-500 text-white' : 'bg-indigo-600 hover:bg-indigo-500 text-white'} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          <button onClick={mode === 'simple' ? handleSimpleSubmit : handleProjectSubmit} disabled={isSubmitting} className={`w-full py-3 font-bold text-sm uppercase flex items-center justify-center gap-2 btn-retro ${mode === 'simple' ? 'bg-green-600 text-white border-green-400' : 'bg-indigo-600 text-white border-indigo-400'} ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
             {isSubmitting ? <RefreshCcw className="animate-spin" size={16} /> : <Plus size={16} strokeWidth={3} />} {isSubmitting ? 'Speichere...' : 'Bestätigen'}
           </button>
         </section>
