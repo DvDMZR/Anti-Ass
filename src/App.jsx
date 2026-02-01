@@ -5,9 +5,18 @@ import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken }
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, query, orderBy, runTransaction } from 'firebase/firestore';
 
 // --- APP VERSION & CHANGELOG ---
-const APP_VERSION = "6.2";
+const APP_VERSION = "6.3";
 
 const VERSION_HISTORY = [
+    {
+        version: "6.3",
+        changes: [
+            "Neu: Kafka hat jetzt 5 Posen (idle, happy, sleep, sit, run, love)",
+            "Neu: Pixel-Art Knochen, Ball & Stern",
+            "Neu: Mehr Animationen (Schwanzwedeln, Rennen, Herzen)",
+            "Update: 10 verschiedene Belohnungen"
+        ]
+    },
     {
         version: "6.2",
         changes: [
@@ -540,41 +549,139 @@ const PixelKafka = ({ mood = 'idle' }) => {
         @keyframes kafka-wag { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(35deg); } }
         @keyframes kafka-jump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
         @keyframes kafka-zzz { 0%, 100% { opacity: 0; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-4px); } }
+        @keyframes kafka-run { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(2px); } }
+        @keyframes kafka-legs { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(0.8); } }
+        @keyframes kafka-sit-tail { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+        @keyframes kafka-heart { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.8; } }
     `;
+
+    // Sitting pose
+    if (mood === 'sit') {
+        return (
+            <div className="relative w-full h-full"><style>{styles}</style>
+                <svg viewBox="0 0 32 32" className="w-full h-full" style={{imageRendering: 'pixelated'}}>
+                    <g style={{transformOrigin: '6px 22px', animation: 'kafka-sit-tail 1.5s ease-in-out infinite'}}>
+                        <rect x="4" y="20" width="2" height="2" fill="#8B5A2B"/>
+                        <rect x="2" y="19" width="2" height="2" fill="#6B4423"/>
+                    </g>
+                    <g style={{animation: 'kafka-breathe 3s ease-in-out infinite'}}>
+                        <rect x="8" y="18" width="10" height="8" fill="#8B5A2B"/>
+                        <rect x="10" y="20" width="5" height="4" fill="#F5F5DC"/>
+                        <rect x="8" y="24" width="4" height="4" fill="#6B4423"/>
+                        <rect x="14" y="24" width="4" height="4" fill="#8B5A2B"/>
+                        <rect x="16" y="16" width="4" height="6" fill="#8B5A2B"/>
+                        <rect x="14" y="8" width="8" height="9" fill="#8B5A2B"/>
+                        <rect x="20" y="12" width="3" height="3" fill="#D2B48C"/>
+                        <rect x="21" y="12" width="2" height="2" fill="#1a1a1a"/>
+                        <rect x="14" y="6" width="3" height="3" fill="#6B4423"/>
+                        <rect x="19" y="6" width="3" height="3" fill="#6B4423"/>
+                        <g style={{animation: 'kafka-blink 4s infinite'}}>
+                            <rect x="15" y="10" width="2" height="2" fill="#1a1a1a"/><rect x="15" y="10" width="1" height="1" fill="#fff"/>
+                            <rect x="18" y="10" width="2" height="2" fill="#1a1a1a"/><rect x="18" y="10" width="1" height="1" fill="#fff"/>
+                        </g>
+                        <rect x="16" y="16" width="4" height="2" fill="#EF4444"/>
+                        <rect x="17" y="17" width="2" height="2" fill="#FCD34D"/>
+                    </g>
+                </svg>
+            </div>
+        );
+    }
+
+    // Running pose
+    if (mood === 'run') {
+        return (
+            <div className="relative w-full h-full"><style>{styles}</style>
+                <svg viewBox="0 0 32 32" className="w-full h-full" style={{imageRendering: 'pixelated'}}>
+                    <g style={{animation: 'kafka-run 0.15s ease-in-out infinite'}}>
+                        <g style={{transformOrigin: '6px 14px', animation: 'kafka-wag 0.1s ease-in-out infinite'}}>
+                            <rect x="3" y="12" width="2" height="2" fill="#8B5A2B"/>
+                            <rect x="1" y="10" width="2" height="2" fill="#6B4423"/>
+                        </g>
+                        <rect x="6" y="12" width="16" height="7" fill="#8B5A2B"/>
+                        <rect x="14" y="13" width="5" height="4" fill="#F5F5DC"/>
+                        <g style={{animation: 'kafka-legs 0.1s ease-in-out infinite'}}>
+                            <rect x="7" y="18" width="2" height="5" fill="#6B4423"/>
+                            <rect x="11" y="19" width="2" height="6" fill="#8B5A2B"/>
+                            <rect x="16" y="18" width="2" height="5" fill="#8B5A2B"/>
+                            <rect x="20" y="19" width="2" height="6" fill="#6B4423"/>
+                        </g>
+                        <rect x="20" y="8" width="5" height="6" fill="#8B5A2B"/>
+                        <rect x="23" y="10" width="3" height="3" fill="#D2B48C"/>
+                        <rect x="24" y="10" width="2" height="2" fill="#1a1a1a"/>
+                        <rect x="20" y="6" width="3" height="3" fill="#6B4423"/>
+                        <rect x="24" y="6" width="3" height="3" fill="#6B4423"/>
+                        <rect x="21" y="8" width="1" height="1" fill="#1a1a1a"/>
+                        <rect x="23" y="8" width="1" height="1" fill="#1a1a1a"/>
+                        <rect x="25" y="12" width="2" height="1" fill="#FF6B6B"/>
+                        <rect x="20" y="13" width="4" height="2" fill="#EF4444"/>
+                    </g>
+                </svg>
+            </div>
+        );
+    }
+
+    // Love pose (with hearts)
+    if (mood === 'love') {
+        return (
+            <div className="relative w-full h-full"><style>{styles}</style>
+                <svg viewBox="0 0 32 32" className="w-full h-full" style={{imageRendering: 'pixelated'}}>
+                    <g style={{animation: 'kafka-heart 1s ease-in-out infinite'}}>
+                        <rect x="3" y="4" width="2" height="2" fill="#EF4444"/><rect x="6" y="4" width="2" height="2" fill="#EF4444"/>
+                        <rect x="4" y="5" width="3" height="2" fill="#EF4444"/><rect x="5" y="7" width="1" height="1" fill="#EF4444"/>
+                    </g>
+                    <g style={{transformOrigin: '8px 20px', animation: 'kafka-wag 0.3s ease-in-out infinite'}}>
+                        <rect x="5" y="18" width="2" height="2" fill="#8B5A2B"/>
+                        <rect x="3" y="16" width="2" height="2" fill="#6B4423"/>
+                    </g>
+                    <g style={{animation: 'kafka-breathe 2s ease-in-out infinite'}}>
+                        <rect x="8" y="16" width="14" height="9" fill="#8B5A2B"/>
+                        <rect x="17" y="17" width="4" height="6" fill="#F5F5DC"/>
+                        <rect x="8" y="24" width="3" height="4" fill="#6B4423"/>
+                        <rect x="13" y="24" width="3" height="4" fill="#8B5A2B"/>
+                        <rect x="19" y="23" width="3" height="5" fill="#8B5A2B"/>
+                        <rect x="23" y="23" width="3" height="5" fill="#6B4423"/>
+                        <rect x="21" y="12" width="5" height="6" fill="#8B5A2B"/>
+                        <rect x="22" y="5" width="8" height="8" fill="#8B5A2B"/>
+                        <rect x="28" y="9" width="3" height="3" fill="#D2B48C"/>
+                        <rect x="29" y="9" width="2" height="2" fill="#1a1a1a"/>
+                        <rect x="22" y="3" width="3" height="3" fill="#6B4423"/>
+                        <rect x="27" y="3" width="3" height="3" fill="#6B4423"/>
+                        <rect x="24" y="7" width="2" height="1" fill="#1a1a1a"/>
+                        <rect x="27" y="7" width="2" height="1" fill="#1a1a1a"/>
+                        <path d="M24,8 L25,9 L26,8" stroke="#1a1a1a" strokeWidth="0.5" fill="none"/>
+                        <path d="M27,8 L28,9 L29,8" stroke="#1a1a1a" strokeWidth="0.5" fill="none"/>
+                        <rect x="21" y="13" width="5" height="2" fill="#EF4444"/>
+                    </g>
+                </svg>
+            </div>
+        );
+    }
+
+    // Default: idle, happy, sleep
     return (
         <div className="relative w-full h-full">
             <style>{styles}</style>
             <svg viewBox="0 0 32 32" className="w-full h-full" style={{imageRendering: 'pixelated'}}>
-                {/* Tail */}
                 <g style={{transformOrigin: '8px 20px', animation: mood === 'happy' ? 'kafka-wag 0.2s ease-in-out infinite' : 'kafka-tail 1s ease-in-out infinite'}}>
                     <rect x="5" y="18" width="2" height="2" fill="#8B5A2B"/>
                     <rect x="3" y="16" width="2" height="2" fill="#8B5A2B"/>
                     <rect x="2" y="14" width="2" height="2" fill="#6B4423"/>
                 </g>
                 <g style={{animation: mood === 'happy' ? 'kafka-jump 0.4s ease-in-out infinite' : mood === 'sleep' ? 'none' : 'kafka-breathe 3s ease-in-out infinite'}}>
-                    {/* Hind legs */}
                     <rect x="8" y="24" width="3" height="4" fill="#6B4423"/>
                     <rect x="13" y="24" width="3" height="4" fill="#8B5A2B"/>
-                    {/* Body */}
                     <rect x="8" y="16" width="14" height="9" fill="#8B5A2B"/>
                     <rect x="9" y="17" width="4" height="3" fill="#6B4423"/>
-                    {/* White chest spot */}
                     <rect x="17" y="17" width="4" height="6" fill="#F5F5DC"/>
-                    {/* Front legs */}
                     <rect x="19" y="23" width="3" height="5" fill="#8B5A2B"/>
                     <rect x="23" y="23" width="3" height="5" fill="#6B4423"/>
-                    {/* Neck */}
                     <rect x="21" y="12" width="5" height="6" fill="#8B5A2B"/>
-                    {/* Head */}
                     <rect x="22" y="5" width="8" height="8" fill="#8B5A2B"/>
                     <rect x="23" y="6" width="2" height="2" fill="#6B4423"/>
-                    {/* Snout */}
                     <rect x="28" y="9" width="3" height="3" fill="#D2B48C"/>
                     <rect x="29" y="9" width="2" height="2" fill="#1a1a1a"/>
-                    {/* Ears */}
                     <rect x="22" y="3" width="3" height="3" fill="#6B4423"/>
                     <rect x="27" y="3" width="3" height="3" fill="#6B4423"/>
-                    {/* Eyes */}
                     {mood === 'sleep' ? (
                         <><rect x="24" y="8" width="2" height="1" fill="#1a1a1a"/><rect x="27" y="8" width="2" height="1" fill="#1a1a1a"/></>
                     ) : (
@@ -584,11 +691,9 @@ const PixelKafka = ({ mood = 'idle' }) => {
                         </g>
                     )}
                     {mood === 'happy' && <rect x="29" y="11" width="2" height="1" fill="#FF6B6B"/>}
-                    {/* Collar */}
                     <rect x="21" y="13" width="5" height="2" fill="#EF4444"/>
                     <rect x="23" y="14" width="2" height="2" fill="#FCD34D"/>
                 </g>
-                {/* Sleep ZZZ */}
                 {mood === 'sleep' && (
                     <g fill="#fff" style={{animation: 'kafka-zzz 2s ease-in-out infinite'}}>
                         <text x="26" y="4" fontSize="4" fontFamily="monospace">z</text>
@@ -600,35 +705,55 @@ const PixelKafka = ({ mood = 'idle' }) => {
     );
 };
 
-// --- VECTOR ASSETS & COMPONENTS ---
-// VectorBone Component
-const VectorBone = () => (
-    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-xl animate-[spin_3s_linear_infinite]">
-        <defs>
-            <linearGradient id="boneGrad" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#FFF8E1" />
-                <stop offset="100%" stopColor="#FFECB3" />
-            </linearGradient>
-        </defs>
-        <path d="M20,35 Q10,25 20,15 Q30,5 40,25 L60,25 Q70,5 80,15 Q90,25 80,35 L80,65 Q90,75 80,85 Q70,95 60,75 L40,75 Q30,95 20,85 Q10,75 20,65 Z" fill="url(#boneGrad)" stroke="#d97706" strokeWidth="2" />
-        <path d="M25,25 Q30,20 35,30" stroke="white" strokeWidth="3" strokeLinecap="round" opacity="0.6" />
-    </svg>
+// --- PIXEL ASSETS ---
+const PixelBone = () => (
+    <div className="w-full h-full">
+        <style>{`@keyframes bone-wobble { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(10deg); } }`}</style>
+        <svg viewBox="0 0 16 16" className="w-full h-full" style={{imageRendering: 'pixelated', animation: 'bone-wobble 0.5s ease-in-out infinite'}}>
+            <rect x="2" y="6" width="3" height="4" fill="#FFF8E1"/>
+            <rect x="11" y="6" width="3" height="4" fill="#FFF8E1"/>
+            <rect x="4" y="7" width="8" height="2" fill="#FFF8E1"/>
+            <rect x="2" y="5" width="2" height="1" fill="#FFECB3"/>
+            <rect x="2" y="10" width="2" height="1" fill="#FFECB3"/>
+            <rect x="12" y="5" width="2" height="1" fill="#FFECB3"/>
+            <rect x="12" y="10" width="2" height="1" fill="#FFECB3"/>
+            <rect x="3" y="7" width="1" height="1" fill="#fff"/>
+        </svg>
+    </div>
 );
 
-// VectorBall Component
-const VectorBall = () => (
-    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-xl animate-bounce">
-        <defs>
-            <radialGradient id="ballGrad" cx="30%" cy="30%" r="70%">
-                <stop offset="0%" stopColor="#a3e635" />
-                <stop offset="100%" stopColor="#3f6212" />
-            </radialGradient>
-        </defs>
-        <circle cx="50" cy="50" r="40" fill="url(#ballGrad)" />
-        <path d="M15,50 Q50,20 85,50" stroke="white" strokeWidth="4" fill="none" opacity="0.4" />
-        <path d="M15,50 Q50,80 85,50" stroke="white" strokeWidth="4" fill="none" opacity="0.4" />
-        <ellipse cx="35" cy="35" rx="10" ry="5" fill="white" opacity="0.6" transform="rotate(-45 35 35)" />
-    </svg>
+const PixelBall = () => (
+    <div className="w-full h-full">
+        <style>{`@keyframes ball-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }`}</style>
+        <svg viewBox="0 0 16 16" className="w-full h-full" style={{imageRendering: 'pixelated', animation: 'ball-bounce 0.4s ease-in-out infinite'}}>
+            <rect x="5" y="2" width="6" height="1" fill="#65a30d"/>
+            <rect x="3" y="3" width="10" height="1" fill="#65a30d"/>
+            <rect x="2" y="4" width="12" height="2" fill="#84cc16"/>
+            <rect x="2" y="6" width="12" height="4" fill="#a3e635"/>
+            <rect x="2" y="10" width="12" height="2" fill="#84cc16"/>
+            <rect x="3" y="12" width="10" height="1" fill="#65a30d"/>
+            <rect x="5" y="13" width="6" height="1" fill="#65a30d"/>
+            <rect x="4" y="4" width="2" height="2" fill="#d9f99d"/>
+            <rect x="6" y="6" width="4" height="1" fill="#fff" opacity="0.3"/>
+        </svg>
+    </div>
+);
+
+const PixelStar = () => (
+    <div className="w-full h-full">
+        <style>{`@keyframes star-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        <svg viewBox="0 0 16 16" className="w-full h-full" style={{imageRendering: 'pixelated', animation: 'star-spin 2s linear infinite'}}>
+            <rect x="7" y="1" width="2" height="4" fill="#fcd34d"/>
+            <rect x="7" y="11" width="2" height="4" fill="#fcd34d"/>
+            <rect x="1" y="7" width="4" height="2" fill="#fcd34d"/>
+            <rect x="11" y="7" width="4" height="2" fill="#fcd34d"/>
+            <rect x="3" y="3" width="2" height="2" fill="#fbbf24"/>
+            <rect x="11" y="3" width="2" height="2" fill="#fbbf24"/>
+            <rect x="3" y="11" width="2" height="2" fill="#fbbf24"/>
+            <rect x="11" y="11" width="2" height="2" fill="#fbbf24"/>
+            <rect x="6" y="6" width="4" height="4" fill="#fef08a"/>
+        </svg>
+    </div>
 );
 
 // VectorKafka Component
@@ -815,13 +940,15 @@ const VectorKafka = ({ pose = 'sit' }) => {
 // --- REWARDS CONFIGURATION (Defined after VectorKafka) ---
 const REWARDS = [
     { id: 1, title: "Super gemacht!", type: 'confetti', Component: () => <PixelKafka mood="happy" /> },
-    { id: 2, title: "Guter Junge!", type: 'confetti', Component: () => <PixelKafka mood="happy" /> },
+    { id: 2, title: "Guter Junge!", type: 'star', Component: () => <PixelKafka mood="sit" /> },
     { id: 3, title: "Verdiente Pause!", type: 'zzz', Component: () => <PixelKafka mood="sleep" /> },
-    { id: 4, title: "Träum was Schönes!", type: 'zzz', Component: () => <PixelKafka mood="sleep" /> },
-    { id: 5, title: "Leckerli Zeit!", type: 'star', Component: VectorBone },
-    { id: 6, title: "Spielzeit!", type: 'star', Component: VectorBall },
-    { id: 7, title: "Wuff Wuff!", type: 'heart', Component: () => <PixelKafka mood="happy" /> },
-    { id: 8, title: "Task erledigt!", type: 'confetti', Component: () => <PixelKafka mood="idle" /> },
+    { id: 4, title: "Zoomies!", type: 'confetti', Component: () => <PixelKafka mood="run" /> },
+    { id: 5, title: "Leckerli Zeit!", type: 'star', Component: PixelBone },
+    { id: 6, title: "Spielzeit!", type: 'confetti', Component: PixelBall },
+    { id: 7, title: "Wuff Wuff!", type: 'heart', Component: () => <PixelKafka mood="love" /> },
+    { id: 8, title: "Task erledigt!", type: 'star', Component: PixelStar },
+    { id: 9, title: "Schneller Hund!", type: 'confetti', Component: () => <PixelKafka mood="run" /> },
+    { id: 10, title: "Braver Hund!", type: 'heart', Component: () => <PixelKafka mood="sit" /> },
 ];
 
 const PixelAvatarUI = ({ level }) => {
