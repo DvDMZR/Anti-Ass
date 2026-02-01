@@ -998,18 +998,44 @@ const RewardOverlay = ({ reward }) => {
     if (!reward.active || !reward.data) return null;
     const { title, type, Component } = reward.data;
 
+    // Play reward sound
+    useEffect(() => {
+        if (reward.active) {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const playTone = (freq, start, dur) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = freq;
+                    osc.type = 'square';
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime + start);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + start + dur);
+                    osc.start(ctx.currentTime + start);
+                    osc.stop(ctx.currentTime + start + dur);
+                };
+                // Victory jingle
+                playTone(523, 0, 0.1);
+                playTone(659, 0.1, 0.1);
+                playTone(784, 0.2, 0.1);
+                playTone(1047, 0.3, 0.2);
+            } catch(e) {}
+        }
+    }, [reward.active]);
+
     return (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/85 backdrop-blur-sm transition-all duration-500">
+        <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md transition-all duration-500 animate-[shake-screen_0.3s_ease-in-out]">
             <AnimationBackground type={type} />
-            <div className="flex flex-col items-center justify-center animate-bounce z-[150]">
-                <div className="bg-zinc-900/95 backdrop-blur p-8 border-2 border-green-500/50 shadow-[0_0_50px_-12px_rgba(34,197,94,0.5)]">
-                    <div className="w-48 h-48 mx-auto mb-6 relative">
+            <div className="flex flex-col items-center justify-center z-[150]" style={{animation: 'kafka-jump 0.5s ease-in-out infinite'}}>
+                <div className="bg-zinc-900 p-10 border-4 border-green-500 glow-box" style={{boxShadow: '0 0 60px rgba(34,197,94,0.6), inset 0 0 30px rgba(34,197,94,0.2)'}}>
+                    <div className="w-56 h-56 mx-auto mb-6 relative">
                         <Component />
                     </div>
-                    <div className="mt-2 text-center text-white font-bold text-2xl tracking-wide uppercase font-sans">
+                    <div className="mt-4 text-center text-white font-pixel text-lg tracking-wide uppercase glow-green">
                         {title}
                     </div>
-                    <div className="text-center text-green-400 font-bold text-lg mt-1">
+                    <div className="text-center text-green-400 font-bold text-2xl mt-2 font-mono" style={{textShadow: '0 0 20px rgba(34,197,94,0.8)'}}>
                         +{reward.gainedXP} XP
                     </div>
                 </div>
@@ -1599,7 +1625,9 @@ export default function App() {
                         {isOnline ? 'CLOUD: v' + APP_VERSION : 'OFFLINE'}
                    </div>
                    <div className="h-4 w-[1px] bg-zinc-700"></div>
-                   {/* Debug Menu: 5x auf Version tippen zum Öffnen */}
+                   <button onClick={() => { setShowProfileModal(false); setShowDebugMenu(true); }} className="flex items-center gap-2 hover:text-green-500 transition-colors">
+                        <Hash size={12} /> DEBUG
+                   </button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-0">
                     <div className="sticky top-0 bg-zinc-900 border-b border-zinc-800 p-3 text-xs font-bold text-zinc-500 uppercase tracking-wider flex justify-between px-6"><span>Missionsprotokoll</span><span>Belohnung</span></div>
