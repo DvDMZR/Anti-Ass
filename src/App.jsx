@@ -521,6 +521,75 @@ const AnimationBackground = ({ type }) => {
     );
 };
 
+// --- PIXEL KAFKA (Lofi GitHub-Mona Style) ---
+const PixelKafka = ({ mood = 'idle' }) => {
+    const styles = `
+        @keyframes kafka-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+        @keyframes kafka-tail { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(20deg); } }
+        @keyframes kafka-blink { 0%, 96%, 100% { transform: scaleY(1); } 98% { transform: scaleY(0.1); } }
+        @keyframes kafka-wag { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(35deg); } }
+        @keyframes kafka-jump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes kafka-zzz { 0%, 100% { opacity: 0; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-4px); } }
+    `;
+    return (
+        <div className="relative w-full h-full">
+            <style>{styles}</style>
+            <svg viewBox="0 0 32 32" className="w-full h-full" style={{imageRendering: 'pixelated'}}>
+                {/* Tail */}
+                <g style={{transformOrigin: '8px 20px', animation: mood === 'happy' ? 'kafka-wag 0.2s ease-in-out infinite' : 'kafka-tail 1s ease-in-out infinite'}}>
+                    <rect x="5" y="18" width="2" height="2" fill="#8B5A2B"/>
+                    <rect x="3" y="16" width="2" height="2" fill="#8B5A2B"/>
+                    <rect x="2" y="14" width="2" height="2" fill="#6B4423"/>
+                </g>
+                <g style={{animation: mood === 'happy' ? 'kafka-jump 0.4s ease-in-out infinite' : mood === 'sleep' ? 'none' : 'kafka-breathe 3s ease-in-out infinite'}}>
+                    {/* Hind legs */}
+                    <rect x="8" y="24" width="3" height="4" fill="#6B4423"/>
+                    <rect x="13" y="24" width="3" height="4" fill="#8B5A2B"/>
+                    {/* Body */}
+                    <rect x="8" y="16" width="14" height="9" fill="#8B5A2B"/>
+                    <rect x="9" y="17" width="4" height="3" fill="#6B4423"/>
+                    {/* White chest spot */}
+                    <rect x="17" y="17" width="4" height="6" fill="#F5F5DC"/>
+                    {/* Front legs */}
+                    <rect x="19" y="23" width="3" height="5" fill="#8B5A2B"/>
+                    <rect x="23" y="23" width="3" height="5" fill="#6B4423"/>
+                    {/* Neck */}
+                    <rect x="21" y="12" width="5" height="6" fill="#8B5A2B"/>
+                    {/* Head */}
+                    <rect x="22" y="5" width="8" height="8" fill="#8B5A2B"/>
+                    <rect x="23" y="6" width="2" height="2" fill="#6B4423"/>
+                    {/* Snout */}
+                    <rect x="28" y="9" width="3" height="3" fill="#D2B48C"/>
+                    <rect x="29" y="9" width="2" height="2" fill="#1a1a1a"/>
+                    {/* Ears */}
+                    <rect x="22" y="3" width="3" height="3" fill="#6B4423"/>
+                    <rect x="27" y="3" width="3" height="3" fill="#6B4423"/>
+                    {/* Eyes */}
+                    {mood === 'sleep' ? (
+                        <><rect x="24" y="8" width="2" height="1" fill="#1a1a1a"/><rect x="27" y="8" width="2" height="1" fill="#1a1a1a"/></>
+                    ) : (
+                        <g style={{transformOrigin: 'center', animation: 'kafka-blink 4s infinite'}}>
+                            <rect x="24" y="7" width="2" height="2" fill="#1a1a1a"/><rect x="24" y="7" width="1" height="1" fill="#fff"/>
+                            <rect x="27" y="7" width="2" height="2" fill="#1a1a1a"/><rect x="27" y="7" width="1" height="1" fill="#fff"/>
+                        </g>
+                    )}
+                    {mood === 'happy' && <rect x="29" y="11" width="2" height="1" fill="#FF6B6B"/>}
+                    {/* Collar */}
+                    <rect x="21" y="13" width="5" height="2" fill="#EF4444"/>
+                    <rect x="23" y="14" width="2" height="2" fill="#FCD34D"/>
+                </g>
+                {/* Sleep ZZZ */}
+                {mood === 'sleep' && (
+                    <g fill="#fff" style={{animation: 'kafka-zzz 2s ease-in-out infinite'}}>
+                        <text x="26" y="4" fontSize="4" fontFamily="monospace">z</text>
+                        <text x="28" y="2" fontSize="3" fontFamily="monospace">z</text>
+                    </g>
+                )}
+            </svg>
+        </div>
+    );
+};
+
 // --- VECTOR ASSETS & COMPONENTS ---
 // VectorBone Component
 const VectorBone = () => (
@@ -735,31 +804,14 @@ const VectorKafka = ({ pose = 'sit' }) => {
 
 // --- REWARDS CONFIGURATION (Defined after VectorKafka) ---
 const REWARDS = [
-    { id: 1, title: "Super gemacht!", type: 'super-confetti', Component: () => <VectorKafka pose="happy" /> },
-    { id: 2, title: "Zoomies!", type: 'super-confetti', Component: () => <VectorKafka pose="run" /> },
-    { id: 3, title: "Verdiente Pause!", type: 'zzz', Component: () => <VectorKafka pose="sleep" /> },
-    { id: 4, title: "Cooler Typ!", type: 'warp', Component: () => <VectorKafka pose="cool" /> },
-    { id: 5, title: "Held des Tages!", type: 'supernova', Component: () => <VectorKafka pose="hero" /> },
-    { id: 6, title: "Ich liebe es!", type: 'heart', Component: () => <VectorKafka pose="love" /> },
-    { id: 7, title: "Leckerli Zeit!", type: 'gold-storm', Component: VectorBone },
-    { id: 8, title: "Spielzeit!", type: 'bubble', Component: VectorBall },
-    { id: 9, title: "Party Hard!", type: 'supernova', Component: () => <VectorKafka pose="happy" /> },
-    { id: 10, title: "High Five!", type: 'super-confetti', Component: () => <VectorKafka pose="happy" /> }, 
-    { id: 11, title: "Meisterleistung!", type: 'glitch', Component: () => <VectorKafka pose="cool" /> },
-    { id: 12, title: "Schnell wie der Wind!", type: 'warp', Component: () => <VectorKafka pose="run" /> },
-    { id: 13, title: "Goldener Knochen!", type: 'gold-storm', Component: VectorBone },
-    { id: 14, title: "Wow!", type: 'star', Component: () => <VectorKafka pose="love" /> },
-    { id: 15, title: "Läuft bei dir!", type: 'bubble', Component: () => <VectorKafka pose="happy" /> },
-    { id: 16, title: "Nicht aufzuhalten!", type: 'supernova', Component: () => <VectorKafka pose="hero" /> },
-    { id: 17, title: "Ein echter Profi!", type: 'glitch', Component: () => <VectorKafka pose="cool" /> },
-    { id: 18, title: "Träum was schönes!", type: 'zzz', Component: () => <VectorKafka pose="sleep" /> },
-    { id: 19, title: "Ball gefangen!", type: 'bubble', Component: VectorBall },
-    { id: 20, title: "Genial!", type: 'warp', Component: () => <VectorKafka pose="love" /> },
-    { id: 21, title: "Task vernichtet!", type: 'supernova', Component: () => <VectorKafka pose="hero" /> },
-    { id: 22, title: "Guter Hund!", type: 'heart', Component: () => <VectorKafka pose="happy" /> },
-    { id: 23, title: "Maximum Speed!", type: 'super-confetti', Component: () => <VectorKafka pose="run" /> },
-    { id: 24, title: "Chill Modus", type: 'zzz', Component: () => <VectorKafka pose="sleep" /> },
-    { id: 25, title: "Jackpot!", type: 'gold-storm', Component: VectorBone },
+    { id: 1, title: "Super gemacht!", type: 'confetti', Component: () => <PixelKafka mood="happy" /> },
+    { id: 2, title: "Guter Junge!", type: 'confetti', Component: () => <PixelKafka mood="happy" /> },
+    { id: 3, title: "Verdiente Pause!", type: 'zzz', Component: () => <PixelKafka mood="sleep" /> },
+    { id: 4, title: "Träum was Schönes!", type: 'zzz', Component: () => <PixelKafka mood="sleep" /> },
+    { id: 5, title: "Leckerli Zeit!", type: 'star', Component: VectorBone },
+    { id: 6, title: "Spielzeit!", type: 'star', Component: VectorBall },
+    { id: 7, title: "Wuff Wuff!", type: 'heart', Component: () => <PixelKafka mood="happy" /> },
+    { id: 8, title: "Task erledigt!", type: 'confetti', Component: () => <PixelKafka mood="idle" /> },
 ];
 
 const VectorAvatarUI = ({ level }) => {
