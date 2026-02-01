@@ -365,7 +365,7 @@ const AnimationBackground = ({ type }) => {
         const colors = ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#a855f7', '#ec4899', '#06b6d4', '#ffffff', '#f59e0b'];
         
         if (type === 'confetti' || type === 'super-confetti') {
-            const count = type === 'super-confetti' ? 400 : 150;
+            const count = type === 'super-confetti' ? 80 : 40;
             for (let i = 0; i < count; i++) {
                 newParticles.push({
                     id: i,
@@ -403,8 +403,8 @@ const AnimationBackground = ({ type }) => {
                 });
             }
         } else if (type === 'fireworks' || type === 'supernova') {
-            const bursts = type === 'supernova' ? 120 : 60;
-            const particlesPerBurst = type === 'supernova' ? 20 : 12;
+            const bursts = type === 'supernova' ? 20 : 12;
+            const particlesPerBurst = type === 'supernova' ? 8 : 6;
             for (let i = 0; i < bursts; i++) {
                 const centerX = 10 + Math.random() * 80;
                 const centerY = 10 + Math.random() * 80;
@@ -433,7 +433,7 @@ const AnimationBackground = ({ type }) => {
                 }
             }
         } else if (type === 'star' || type === 'space' || type === 'warp') {
-            const count = type === 'warp' ? 300 : 100;
+            const count = type === 'warp' ? 50 : 25;
             for (let i = 0; i < count; i++) {
                 newParticles.push({
                     id: i,
@@ -453,7 +453,7 @@ const AnimationBackground = ({ type }) => {
                 });
             }
         } else if (type === 'gold-storm' || type === 'money') {
-             const count = type === 'gold-storm' ? 150 : 40;
+             const count = type === 'gold-storm' ? 30 : 15;
              for (let i = 0; i < count; i++) {
                 newParticles.push({
                     id: i,
