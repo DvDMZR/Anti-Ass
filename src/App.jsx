@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Mic, Plus, Check, Clock, AlertTriangle, Calendar, Trash2, Zap, BarChart3, Archive, RefreshCcw, Layout, ArrowRight, X, Play, FileText, Award, Hash, List, Cloud, Wifi, WifiOff, AlertCircle, Save, Edit2, Info, HelpCircle } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
-import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, query, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, query, orderBy, runTransaction } from 'firebase/firestore';
 
 // --- APP VERSION & CHANGELOG ---
 const APP_VERSION = "6.1";
@@ -32,7 +32,7 @@ try {
     if (typeof __firebase_config !== 'undefined') {
         firebaseConfig = JSON.parse(__firebase_config);
     }
-} catch (e) { console.log("Local mode"); }
+} catch (e) { /* Local mode */ }
 
 if (!firebaseConfig) {
     firebaseConfig = {
@@ -166,7 +166,7 @@ const calculateTaskXP = (task) => {
 };
 
 const parseNaturalLanguage = (input) => {
-    let text = input; let targetDate = new Date(); let foundDate = false;
+    let text = input; let targetDate = new Date(Date.now()); let foundDate = false;
     let foundTime = false;
     let hours = 23, minutes = 59;
     
@@ -953,7 +953,7 @@ export default function App() {
       const timer = setTimeout(checkPenalties, 2000);
       return () => clearTimeout(timer);
 
-  }, [user, tasks.length, userStats.lastPenaltyCheck]);
+  }, [user, tasks, userStats.lastPenaltyCheck]);
 
   useEffect(() => {
       const interval = setInterval(() => setNow(Date.now()), 60000);
@@ -1085,22 +1085,24 @@ export default function App() {
     const statsRef = doc(db, 'artifacts', appId, 'users', user.uid, 'data', 'stats');
 
     try {
-        await updateDoc(taskRef, {
-            completed: isCompleting,
-            completedAt: isCompleting ? Date.now() : null,
-            earnedXP: isCompleting ? xpValue : 0
+        await runTransaction(db, async (transaction) => {
+            const statsDoc = await transaction.get(statsRef);
+            const currentXP = statsDoc.exists() ? statsDoc.data().xp || 0 : 0;
+
+            transaction.update(taskRef, {
+                completed: isCompleting,
+                completedAt: isCompleting ? Date.now() : null,
+                earnedXP: isCompleting ? xpValue : 0
+            });
+
+            const newXP = isCompleting ? currentXP + xpValue : Math.max(0, currentXP - xpValue);
+            transaction.update(statsRef, { xp: newXP });
         });
 
-        if (isCompleting) {
-            await updateDoc(statsRef, { xp: userStats.xp + xpValue });
-            // FIX: Ensure REWARDS is valid before accessing
-            if (REWARDS && REWARDS.length > 0) {
-                const randomReward = REWARDS[Math.floor(Math.random() * REWARDS.length)];
-                setReward({ active: true, data: randomReward, gainedXP: xpValue });
-                setTimeout(() => setReward(prev => ({ ...prev, active: false })), 3000);
-            }
-        } else {
-            await updateDoc(statsRef, { xp: Math.max(0, userStats.xp - xpValue) });
+        if (isCompleting && REWARDS && REWARDS.length > 0) {
+            const randomReward = REWARDS[Math.floor(Math.random() * REWARDS.length)];
+            setReward({ active: true, data: randomReward, gainedXP: xpValue });
+            setTimeout(() => setReward(prev => ({ ...prev, active: false })), 3000);
         }
     } catch (err) {
         console.error("Error updating task: ", err);
