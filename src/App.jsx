@@ -1,13 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, Plus, Check, Clock, AlertTriangle, Calendar, Trash2, Zap, BarChart3, Archive, RefreshCcw, Layout, ArrowRight, X, Play, FileText, Award, Hash, List, Cloud, Wifi, WifiOff, AlertCircle, Save, Edit2, Info, HelpCircle } from 'lucide-react';
+import { Mic, Plus, Check, Clock, AlertTriangle, Calendar, Trash2, Zap, BarChart3, Archive, RefreshCcw, Layout, ArrowRight, X, Play, FileText, Award, Hash, List, Cloud, Wifi, WifiOff, AlertCircle, Save, Edit2, Info, HelpCircle, Bell, BellOff } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, query, orderBy, runTransaction } from 'firebase/firestore';
 
 // --- APP VERSION & CHANGELOG ---
-const APP_VERSION = "6.4";
+const APP_VERSION = "6.5";
 
 const VERSION_HISTORY = [
+    {
+        version: "6.5",
+        changes: [
+            "BETA: Push-Benachrichtigungen (Glocke im Profil)",
+            "Neu: App installierbar auf Homescreen (PWA)",
+            "Neu: 8-Bit Victory Sound bei Belohnungen",
+            "Info: Volle Notification-Features kommen bald!"
+        ]
+    },
     {
         version: "6.4",
         changes: [
@@ -1108,6 +1117,23 @@ export default function App() {
   const [reward, setReward] = useState({ active: false, data: null, gainedXP: 0 });
   const [showDebugMenu, setShowDebugMenu] = useState(false);
   const [debugTab, setDebugTab] = useState('rewards');
+  const [notifPermission, setNotifPermission] = useState(Notification?.permission || 'default');
+  const [showNotifHelp, setShowNotifHelp] = useState(false);
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+      alert('Dein Browser unterstützt keine Benachrichtigungen.');
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    setNotifPermission(permission);
+    if (permission === 'granted') {
+      new Notification('Anti-ASS', {
+        body: 'Benachrichtigungen aktiviert! 🎉',
+        icon: '/icon-192.png'
+      });
+    }
+  };
 
   useEffect(() => {
     const storedVersion = localStorage.getItem('antiass_version');
@@ -1541,6 +1567,47 @@ export default function App() {
         </div>
       )}
 
+      {showNotifHelp && (
+        <div className="fixed inset-0 z-[120] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-yellow-500/50 p-6 rounded-xl w-full max-w-sm shadow-2xl relative">
+             <button onClick={() => setShowNotifHelp(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white"><X size={20} /></button>
+             <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Bell size={20} className="text-yellow-400" /> BENACHRICHTIGUNGEN</h3>
+
+             <div className="bg-yellow-500/10 border border-yellow-500/30 p-3 rounded-lg mb-4">
+                <p className="text-yellow-400 text-xs font-bold mb-1">⚠️ BETA VERSION</p>
+                <p className="text-zinc-300 text-xs">Push-Notifications für überfällige Tasks kommen in einem zukünftigen Update!</p>
+             </div>
+
+             <div className="space-y-3 text-sm text-zinc-300">
+                <div className="flex gap-3">
+                    <span className="text-green-500 font-bold">1.</span>
+                    <span>Klicke auf die Glocke im Profil-Menü</span>
+                </div>
+                <div className="flex gap-3">
+                    <span className="text-green-500 font-bold">2.</span>
+                    <span>Erlaube Benachrichtigungen im Browser-Popup</span>
+                </div>
+                <div className="flex gap-3">
+                    <span className="text-green-500 font-bold">3.</span>
+                    <span>Du erhältst eine Test-Benachrichtigung</span>
+                </div>
+             </div>
+
+             <div className="mt-4 p-3 bg-zinc-800 rounded-lg">
+                <p className="text-xs text-zinc-400"><strong className="text-white">Aktueller Status:</strong> {notifPermission === 'granted' ? '✅ Aktiviert' : notifPermission === 'denied' ? '❌ Blockiert' : '⏳ Nicht eingerichtet'}</p>
+             </div>
+
+             <button
+                onClick={() => { setShowNotifHelp(false); requestNotificationPermission(); }}
+                disabled={notifPermission === 'granted'}
+                className={`w-full mt-4 py-3 font-bold rounded-lg flex items-center justify-center gap-2 ${notifPermission === 'granted' ? 'bg-zinc-700 text-zinc-400' : 'bg-yellow-600 hover:bg-yellow-500 text-white btn-retro border-yellow-400'}`}
+             >
+                <Bell size={16} /> {notifPermission === 'granted' ? 'Bereits aktiviert' : 'Jetzt aktivieren'}
+             </button>
+          </div>
+        </div>
+      )}
+
       {editingTask && (
           <div className="fixed inset-0 z-[110] bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
               <div className="bg-zinc-900 border border-green-500 p-6 rounded-xl w-full max-w-md shadow-2xl">
@@ -1624,6 +1691,14 @@ export default function App() {
                         {isOnline ? <Wifi size={12} /> : <WifiOff size={12} />}
                         {isOnline ? 'CLOUD: v' + APP_VERSION : 'OFFLINE'}
                    </div>
+                   <div className="h-4 w-[1px] bg-zinc-700"></div>
+                   <button
+                        onClick={() => { setShowProfileModal(false); setShowNotifHelp(true); }}
+                        className={`flex items-center gap-2 transition-colors ${notifPermission === 'granted' ? 'text-green-500' : 'hover:text-yellow-500'}`}
+                        title="Benachrichtigungen"
+                   >
+                        {notifPermission === 'granted' ? <Bell size={12} /> : <BellOff size={12} />} NOTIFY
+                   </button>
                    <div className="h-4 w-[1px] bg-zinc-700"></div>
                    <button onClick={() => { setShowProfileModal(false); setShowDebugMenu(true); }} className="flex items-center gap-2 hover:text-green-500 transition-colors">
                         <Hash size={12} /> DEBUG
