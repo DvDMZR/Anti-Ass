@@ -5,9 +5,19 @@ import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken }
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, query, orderBy, runTransaction } from 'firebase/firestore';
 
 // --- APP VERSION & CHANGELOG ---
-const APP_VERSION = "6.1";
+const APP_VERSION = "6.2";
 
 const VERSION_HISTORY = [
+    {
+        version: "6.2",
+        changes: [
+            "PIXEL ART: Neuer Lofi-Stil für Kafka & Avatar",
+            "Fix: Deadlines werden jetzt dynamisch aktualisiert",
+            "Fix: Aging-Status relativ zur Deadline",
+            "Fix: Race Condition bei Task-Updates behoben",
+            "Performance: Weniger Partikel-Animationen"
+        ]
+    },
     {
         version: "6.1",
         changes: [
@@ -814,31 +824,34 @@ const REWARDS = [
     { id: 8, title: "Task erledigt!", type: 'confetti', Component: () => <PixelKafka mood="idle" /> },
 ];
 
-const VectorAvatarUI = ({ level }) => {
-    const shirtColor = level > 10 ? '#9333ea' : level > 5 ? '#3b82f6' : '#16a34a'; 
+const PixelAvatarUI = ({ level }) => {
+    const shirtColor = level > 10 ? '#9333ea' : level > 5 ? '#3b82f6' : '#16a34a';
     return (
-        <div className="w-16 h-16 border-2 border-zinc-600 bg-zinc-800 relative shadow-lg group-hover:border-zinc-400 transition-colors overflow-hidden">
-            <svg viewBox="0 0 100 100" className="w-full h-full">
-                <defs>
-                    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="#27272a" />
-                        <stop offset="100%" stopColor="#18181b" />
-                    </linearGradient>
-                </defs>
-                <rect width="100" height="100" fill="url(#bgGrad)" />
-                <path d="M20,60 Q15,90 30,95 L70,95 Q85,90 80,60 Q85,40 75,30 Q50,10 25,30 Q15,40 20,60" fill="#78350f" />
-                <path d="M25,100 Q50,85 75,100 L75,85 Q50,75 25,85 Z" fill={shirtColor} />
-                <rect x="42" y="65" width="16" height="10" fill="#fde68a" />
-                <ellipse cx="50" cy="55" rx="20" ry="22" fill="#fde68a" />
-                <path d="M30,35 Q50,25 70,35 Q75,45 70,55 L70,40 Q50,30 30,40 L30,55 Q25,45 30,35" fill="#78350f" />
-                <path d="M50,25 L35,15 Q30,12 35,25 Q40,30 50,25 Z" fill="#ef4444" />
-                <path d="M50,25 L65,15 Q70,12 65,25 Q60,30 50,25 Z" fill="#ef4444" />
-                <circle cx="50" cy="25" r="4" fill="#b91c1c" />
-                <circle cx="43" cy="55" r="2.5" fill="#18181b" /> 
-                <circle cx="57" cy="55" r="2.5" fill="#18181b" /> 
-                <ellipse cx="40" cy="62" rx="3" ry="1.5" fill="#fda4af" opacity="0.6" /> 
-                <ellipse cx="60" cy="62" rx="3" ry="1.5" fill="#fda4af" opacity="0.6" /> 
-                <path d="M46,67 Q50,69 54,67" fill="none" stroke="#18181b" strokeWidth="1.5" strokeLinecap="round" />
+        <div className="w-16 h-16 border-2 border-zinc-600 bg-zinc-900 relative shadow-lg group-hover:border-zinc-400 transition-colors overflow-hidden">
+            <svg viewBox="0 0 16 16" className="w-full h-full" style={{imageRendering: 'pixelated'}}>
+                <rect width="16" height="16" fill="#18181b"/>
+                {/* Hair back */}
+                <rect x="4" y="2" width="8" height="4" fill="#78350f"/>
+                <rect x="3" y="4" width="2" height="5" fill="#78350f"/>
+                <rect x="11" y="4" width="2" height="5" fill="#78350f"/>
+                {/* Face */}
+                <rect x="5" y="4" width="6" height="6" fill="#fde68a"/>
+                {/* Hair front */}
+                <rect x="5" y="3" width="6" height="2" fill="#78350f"/>
+                {/* Hair bow */}
+                <rect x="3" y="2" width="2" height="2" fill="#ef4444"/>
+                {/* Eyes */}
+                <rect x="6" y="6" width="1" height="1" fill="#18181b"/>
+                <rect x="9" y="6" width="1" height="1" fill="#18181b"/>
+                {/* Blush */}
+                <rect x="5" y="7" width="1" height="1" fill="#fda4af" opacity="0.7"/>
+                <rect x="10" y="7" width="1" height="1" fill="#fda4af" opacity="0.7"/>
+                {/* Mouth */}
+                <rect x="7" y="8" width="2" height="1" fill="#d97706"/>
+                {/* Neck */}
+                <rect x="7" y="10" width="2" height="1" fill="#fde68a"/>
+                {/* Shirt */}
+                <rect x="4" y="11" width="8" height="5" fill={shirtColor}/>
             </svg>
         </div>
     );
@@ -1420,7 +1433,7 @@ export default function App() {
             <div className="bg-zinc-900 border-2 border-zinc-700 w-full max-w-lg h-[80vh] flex flex-col relative shadow-2xl">
                 <button onClick={() => setShowProfileModal(false)} className="absolute top-4 right-4 text-zinc-500 hover:text-white p-2"><X size={24} /></button>
                 <div className="p-8 border-b border-zinc-800 flex flex-col items-center bg-zinc-950/50">
-                    <div className="mb-4 transform scale-150"><VectorAvatarUI level={level} /></div>
+                    <div className="mb-4 transform scale-150"><PixelAvatarUI level={level} /></div>
                     <div className="text-2xl font-black text-white tracking-tight text-center leading-none mb-1">{currentTitle}</div>
                     <div className="text-zinc-500 font-mono text-xs mt-1 uppercase tracking-widest">NEXT: {nextLevelTitle}</div>
                     {user && (
@@ -1538,7 +1551,7 @@ export default function App() {
           <div className="flex justify-between items-end mb-6">
             <div className="flex items-end gap-5">
                 <div className="relative group cursor-pointer" onClick={() => setShowProfileModal(true)}>
-                    <VectorAvatarUI level={level} />
+                    <PixelAvatarUI level={level} />
                 </div>
                 <div className="flex flex-col cursor-pointer" onClick={() => setShowProfileModal(true)}>
                     <h1 className="text-2xl font-black tracking-tight text-white leading-none">ANTI<span className="text-green-500">ASS</span></h1>
