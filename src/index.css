@@ -2,8 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* CRT Retro Theme */
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+/* App Styles */
 
 :root {
   --glow-green: #22c55e;
@@ -16,27 +15,19 @@ body {
 }
 
 
-/* Pixel Font für Headers */
-.font-pixel {
-  font-family: 'Press Start 2P', monospace;
-}
-
-
-/* Retro Button Style */
+/* Button Style */
 .btn-retro {
-  border: 3px solid currentColor;
-  box-shadow: 4px 4px 0 currentColor;
-  transition: all 0.1s;
+  border: 2px solid currentColor;
+  border-radius: 6px;
+  transition: all 0.15s ease;
 }
 
 .btn-retro:hover {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 currentColor;
+  opacity: 0.8;
 }
 
 .btn-retro:active {
-  transform: translate(4px, 4px);
-  box-shadow: 0 0 0 currentColor;
+  transform: scale(0.97);
 }
 
 /* Custom Scrollbar */
