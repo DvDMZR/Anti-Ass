@@ -1049,7 +1049,7 @@ const RewardOverlay = ({ reward }) => {
                     <div className="w-56 h-56 mx-auto mb-6 relative">
                         <Component />
                     </div>
-                    <div className="mt-4 text-center text-white font-pixel text-lg tracking-wide uppercase">
+                    <div className="mt-4 text-center text-white font-bold text-lg tracking-wide uppercase">
                         {title}
                     </div>
                     <div className="text-center text-green-400 font-bold text-2xl mt-2 font-mono" style={{textShadow: '0 0 20px rgba(34,197,94,0.8)'}}>
@@ -1847,7 +1847,7 @@ export default function App() {
                     <PixelAvatarUI level={level} />
                 </div>
                 <div className="flex flex-col cursor-pointer" onClick={() => setShowProfileModal(true)}>
-                    <h1 className="text-xl font-pixel tracking-tight text-white leading-none">ANTI<span className="text-green-500">ASS</span></h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-white leading-none">ANTI<span className="text-green-500">ASS</span><span className="text-[9px] text-zinc-500 font-normal align-middle ml-1.5">v{APP_VERSION}</span></h1>
                     <div className="text-[8px] text-zinc-500 font-bold tracking-widest uppercase mt-1 group-hover:text-zinc-300 transition-colors font-mono">Anti-Aufschiebe-System</div>
                     <div className="w-40 mt-2">
                          <div className="flex justify-between text-[10px] text-zinc-400 mb-1 font-medium"><span>{Math.floor(currentXP)} XP</span><span>{xpNeeded} XP</span></div>
