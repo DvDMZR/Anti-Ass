@@ -5,9 +5,17 @@ import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, 
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, query, orderBy, runTransaction } from 'firebase/firestore';
 
 // --- APP VERSION & CHANGELOG ---
-const APP_VERSION = "6.5";
+const APP_VERSION = "6.6";
 
 const VERSION_HISTORY = [
+    {
+        version: "6.6",
+        changes: [
+            "Neu: Google Sign-In (Daten bleiben dauerhaft erhalten)",
+            "Fix: Speichern-Fehler (Missing permissions) behoben",
+            "Entfernt: CRT-Scanlines & Neonlicht-Effekte"
+        ]
+    },
     {
         version: "6.5",
         changes: [
@@ -1037,11 +1045,11 @@ const RewardOverlay = ({ reward }) => {
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/90 backdrop-blur-md transition-all duration-500 animate-[shake-screen_0.3s_ease-in-out]">
             <AnimationBackground type={type} />
             <div className="flex flex-col items-center justify-center z-[150]" style={{animation: 'kafka-jump 0.5s ease-in-out infinite'}}>
-                <div className="bg-zinc-900 p-10 border-4 border-green-500 glow-box" style={{boxShadow: '0 0 60px rgba(34,197,94,0.6), inset 0 0 30px rgba(34,197,94,0.2)'}}>
+                <div className="bg-zinc-900 p-10 border-4 border-green-500">
                     <div className="w-56 h-56 mx-auto mb-6 relative">
                         <Component />
                     </div>
-                    <div className="mt-4 text-center text-white font-pixel text-lg tracking-wide uppercase glow-green">
+                    <div className="mt-4 text-center text-white font-pixel text-lg tracking-wide uppercase">
                         {title}
                     </div>
                     <div className="text-center text-green-400 font-bold text-2xl mt-2 font-mono" style={{textShadow: '0 0 20px rgba(34,197,94,0.8)'}}>
@@ -1839,7 +1847,7 @@ export default function App() {
                     <PixelAvatarUI level={level} />
                 </div>
                 <div className="flex flex-col cursor-pointer" onClick={() => setShowProfileModal(true)}>
-                    <h1 className="text-xl font-pixel tracking-tight text-white leading-none crt-flicker">ANTI<span className="text-green-500 glow-green">ASS</span></h1>
+                    <h1 className="text-xl font-pixel tracking-tight text-white leading-none">ANTI<span className="text-green-500">ASS</span></h1>
                     <div className="text-[8px] text-zinc-500 font-bold tracking-widest uppercase mt-1 group-hover:text-zinc-300 transition-colors font-mono">Anti-Aufschiebe-System</div>
                     <div className="w-40 mt-2">
                          <div className="flex justify-between text-[10px] text-zinc-400 mb-1 font-medium"><span>{Math.floor(currentXP)} XP</span><span>{xpNeeded} XP</span></div>
@@ -1880,7 +1888,7 @@ export default function App() {
         </div>
 
         {view !== 'archive' && (
-        <section className="bg-zinc-900 border-2 border-zinc-700 p-4 mb-8 glow-box">
+        <section className="bg-zinc-900 border-2 border-zinc-700 p-4 mb-8">
           <div className="flex text-xs font-bold mb-4 bg-zinc-950 p-1">
             <button onClick={() => setMode('simple')} className={`flex-1 py-2 flex items-center justify-center gap-2 transition-all ${mode === 'simple' ? 'bg-green-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}><Zap size={14} /> SCHNELL</button>
             <button onClick={() => setMode('project')} className={`flex-1 py-2 flex items-center justify-center gap-2 transition-all ${mode === 'project' ? 'bg-indigo-600 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}><Layout size={14} /> PROJEKT</button>
