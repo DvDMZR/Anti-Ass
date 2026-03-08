@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, Plus, Check, Clock, AlertTriangle, Calendar, Trash2, Zap, BarChart3, Archive, RefreshCcw, Layout, ArrowRight, X, Play, FileText, Award, Hash, List, Cloud, Wifi, WifiOff, AlertCircle, Save, Edit2, Info, HelpCircle, Bell, BellOff } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, GoogleAuthProvider, signInWithPopup, linkWithPopup, signOut } from 'firebase/auth';
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, query, orderBy, runTransaction } from 'firebase/firestore';
 
 // --- APP VERSION & CHANGELOG ---
@@ -1244,6 +1244,33 @@ export default function App() {
       return () => clearInterval(interval);
   }, []);
 
+  const handleGoogleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      if (user && user.isAnonymous) {
+        await linkWithPopup(user, provider);
+      } else {
+        await signInWithPopup(auth, provider);
+      }
+    } catch (err) {
+      if (err.code === 'auth/credential-already-in-use') {
+        await signInWithPopup(auth, provider);
+      } else {
+        console.error("Google login error:", err);
+        alert("Anmeldung fehlgeschlagen: " + err.message);
+      }
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      await signInAnonymously(auth);
+    } catch (err) {
+      console.error("Sign out error:", err);
+    }
+  };
+
   const startListening = () => {
     if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
         alert("Dein Browser unterstützt keine Spracherkennung.");
@@ -1666,14 +1693,35 @@ export default function App() {
                     <div className="text-2xl font-black text-white tracking-tight text-center leading-none mb-1">{currentTitle}</div>
                     <div className="text-zinc-500 font-mono text-xs mt-1 uppercase tracking-widest">NEXT: {nextLevelTitle}</div>
                     {user && (
-                        <div 
-                            className="text-[10px] text-zinc-600 mt-2 font-mono select-all cursor-pointer hover:text-zinc-400 transition-colors" 
-                            onClick={() => { navigator.clipboard.writeText(user.uid); alert("ID kopiert!"); }} 
+                        <div
+                            className="text-[10px] text-zinc-600 mt-2 font-mono select-all cursor-pointer hover:text-zinc-400 transition-colors"
+                            onClick={() => { navigator.clipboard.writeText(user.uid); alert("ID kopiert!"); }}
                             title="Klicken zum Kopieren für DB-Regeln"
                         >
                             UID: {user.uid}
                         </div>
                     )}
+                    <div className="mt-4">
+                        {user && user.isAnonymous ? (
+                            <button
+                                onClick={handleGoogleLogin}
+                                className="flex items-center gap-2 bg-white text-zinc-900 font-bold text-xs px-4 py-2 hover:bg-zinc-200 transition-colors"
+                            >
+                                <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                                Mit Google anmelden
+                            </button>
+                        ) : user && !user.isAnonymous ? (
+                            <div className="flex flex-col items-center gap-2">
+                                <div className="text-xs text-green-500 font-mono font-bold">✓ {user.email}</div>
+                                <button
+                                    onClick={handleSignOut}
+                                    className="text-[10px] text-zinc-500 hover:text-red-400 transition-colors font-mono uppercase tracking-wider"
+                                >
+                                    Abmelden
+                                </button>
+                            </div>
+                        ) : null}
+                    </div>
                     <div className="w-full max-w-xs mt-6">
                          <div className="flex justify-between text-xs text-zinc-400 mb-2 font-bold"><span>LEVEL {level}</span><span>{Math.floor(currentXP)} / {xpNeeded} XP</span></div>
                         <div className="h-4 bg-zinc-800 border border-zinc-700 overflow-hidden relative">
